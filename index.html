@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Daily Log</title>
+<meta name="description" content="A small shared tracker: three readings per entry, a timed interval between each, charted over time.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1E1B" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Log">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">Daily<span>·</span>Log</div>
+    <nav class="seg" id="nav">
+      <button type="button" data-act="view" data-v="log" aria-current="true">Log</button>
+      <button type="button" data-act="view" data-v="progress" aria-current="false">Progress</button>
+      <button type="button" data-act="view" data-v="history" aria-current="false">History</button>
+    </nav>
+    <button type="button" class="gear" id="gear" data-act="view" data-v="settings" aria-current="false" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+    <div class="status" id="status" aria-live="polite"><span class="dot"></span><span id="status-text">Starting up</span></div>
+  </div>
+</header>
+
+<main id="app">
+  <section class="card">
+    <div class="eyebrow">Loading</div>
+    <h2 style="font-size:26px;margin-top:4px">Three readings, ninety seconds apart</h2>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+      <div class="skel" style="width:70%"></div>
+      <div class="skel" style="width:45%"></div>
+    </div>
+  </section>
+  <noscript>
+    <section class="card warn">
+      <div class="eyebrow">JavaScript required</div>
+      <p class="lede" style="margin-top:4px">This app decrypts your data in the browser, so it cannot run without JavaScript.</p>
+    </section>
+  </noscript>
+</main>
+
+<script src="crypto.js"></script>
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
