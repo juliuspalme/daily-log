@@ -1,0 +1,11 @@
+{
+ "format": "daily-log.v1",
+ "kdf": {
+  "name": "PBKDF2",
+  "hash": "SHA-256",
+  "iterations": 600000,
+  "salt": "DrLwP3Ymv/2g9LQmE3yDIw=="
+ },
+ "iv": "KRG5bufxtbWXOjHG",
+ "ct": "ZNEBNYbAT37WzC3BXA7IdgtId07FAYB2eUpv2+H52kd9H0KWVOzXb/suU0IpmrotGcIxeKwSmk9Pg04xagjW3cHnaiJj1vEkSJCOog2cnvddomJxJw3ucHdJMO8E/qeSC9hAdg9wsMTKc+4PCbbTR9At0z9RxMGeDHa6HMrdnFJ8Vu7+FKD/xRnHXkQXlJk6b1bOWRPXMNAjLQFsyXkpR75ddxUCUNccNS3SS9E1fJzxk5ZWDhRefcU+lg=="
+}
