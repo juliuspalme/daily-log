@@ -5,7 +5,7 @@
  * change under the same name. GitHub API traffic is never cached or
  * intercepted — the app handles offline writes with its own queue.
  */
-var CACHE = "daily-log-v1";
+var CACHE = "daily-log-v2";
 var SHELL = [
   "./",
   "index.html",

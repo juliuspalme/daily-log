@@ -33,6 +33,21 @@ window.AppModel = (function () {
       } else if (o.op === "add") {
         var dup = st.entries.some(function (e) { return e.id === o.entry.id; });
         if (!dup && st.deleted.indexOf(o.entry.id) < 0) st.entries.push(o.entry);
+      } else if (o.op === "edit") {
+        // Last writer wins, and replaying the same edit changes nothing.
+        st.entries = st.entries.map(function (e) {
+          if (e.id !== o.id) return e;
+          var v = (o.values || e.values).slice(0, READINGS).map(Number);
+          return {
+            id: e.id,
+            personId: o.personId || e.personId,
+            ts: e.ts,
+            values: v,
+            total: sum(v),
+            best: maxOf(v),
+            editedAt: o.at || e.editedAt || null
+          };
+        });
       } else if (o.op === "del") {
         st.entries = st.entries.filter(function (e) { return e.id !== o.id; });
         if (st.deleted.indexOf(o.id) < 0) st.deleted.push(o.id);

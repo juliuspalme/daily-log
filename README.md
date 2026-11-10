@@ -13,13 +13,18 @@ contents are not.
 ## What it does
 
 - **Guided entry.** Pick who is logging, save the first reading, and a
-  90-second countdown starts on its own. The next one unlocks at zero and the
-  phone buzzes. Three readings, then the entry is saved.
+  90-second countdown starts on its own. The next one unlocks at zero. Three
+  readings, then the entry is saved.
+- **Countdown signal.** A short tone at three, two and one, a longer one at
+  zero, plus a vibration. Tones are synthesised in the browser — there is no
+  audio file — and can be switched off per device in Settings.
 - **Seeded input.** Each reading opens pre-filled with the matching value from
   that person's last entry, so logging is usually one tap.
 - **Progress.** Totals or best single reading per entry, one line per person,
   plus last total, best, entries logged and change since the first.
-- **History.** Every entry, newest first, with a two-tap delete.
+- **History.** Every entry, newest first. Tap one to correct its readings or
+  move it to the other person; corrected entries are marked "edited". Deleting
+  takes two taps.
 - **Installable.** Add it to your home screen and it opens full screen and
   works offline; entries made without signal queue up and push on reconnect.
 - **Your own wording.** Settings holds a label for the activity, the unit and
@@ -116,7 +121,8 @@ Decrypted, the file is:
 {
   "people":  [{ "id": "p1", "name": "…", "slot": 1 }],
   "entries": [{ "id": "…", "personId": "p1", "ts": 1762600000000,
-                "values": [11, 8, 6], "total": 25, "best": 11 }],
+                "values": [11, 8, 6], "total": 25, "best": 11,
+                "editedAt": null }],
   "labels":  { "activity": "", "unit": "count", "round": "Round" },
   "deleted": ["…"],
   "rev": 42,
@@ -132,7 +138,11 @@ new version — so two people logging at the same moment cannot clobber each
 other.
 
 Entries carry their own ids and deletes leave tombstones, which is what makes
-an offline queue safe to replay later.
+an offline queue safe to replay later. A device's pending changes are a list of
+operations — `people`, `labels`, `add`, `edit`, `del` — each written so that
+replaying it twice gives the same result as once, and so that an `edit` for an
+entry someone else has deleted quietly does nothing rather than bringing it
+back.
 
 The app polls for changes every 60 seconds while open and on every focus. It is
 not live — simultaneous writers see each other within the minute.

@@ -117,6 +117,7 @@
     run: LS.json("dl.run", null),
     summary: null,
     armed: null,
+    editing: null,
     busy: false,
     formError: null,
     wakeLock: null
@@ -225,6 +226,36 @@
     return d.toLocaleDateString(undefined, opt);
   }
   function buzz() { try { if (navigator.vibrate) navigator.vibrate([420, 140, 420]); } catch (e) {} }
+
+  /* Sound: a short tone at 3, 2, 1 and a longer one at zero. Tones are
+   * synthesised, so there is no audio file to ship. The AudioContext is
+   * opened inside a tap — which is what mobile browsers require — and can
+   * then play from a timer. A phone that locks its screen may suspend it
+   * anyway, so the vibration and the visible ring stay the real signals. */
+  var AC = null, lastTick = null;
+  function soundOn() { return LS.get("dl.sound") !== "0"; }
+  function audioUnlock() {
+    if (!soundOn()) return;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!AC) AC = new Ctx();
+      if (AC.state === "suspended") AC.resume();
+    } catch (e) { AC = null; }
+  }
+  function beep(freq, ms, vol) {
+    if (!soundOn() || !AC || AC.state !== "running") return;
+    try {
+      var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t); o.stop(t + ms / 1000 + 0.03);
+    } catch (e) {}
+  }
   function persistRun() { if (S.run) LS.set("dl.run", JSON.stringify(S.run)); else LS.del("dl.run"); }
 
   async function holdScreen(on) {
@@ -363,7 +394,7 @@
           '<circle id="ringarc" cx="94" cy="94" r="82" fill="none" stroke="' + col + '" stroke-width="11" stroke-linecap="round" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + ((1 - frac) * circ).toFixed(1) + '"/>' +
         "</svg>" +
         '<div class="ringtxt" id="ringtxt"><div class="big">' + left + '</div><div class="cap">seconds</div></div></div>' +
-        '<p class="note">' + esc(w.round) + " " + (n + 1) + " of " + N + " unlocks at zero. Your phone buzzes when it does.</p></div>" +
+        '<p class="note">' + esc(w.round) + " " + (n + 1) + " of " + N + " unlocks at zero, on a beep and a buzz.</p></div>" +
         '<div class="readings" style="margin-top:6px">' + slots + "</div></section>";
     }
 
@@ -439,20 +470,44 @@
     return out;
   }
 
+  function vEditRow(st, e, w) {
+    var inputs = "";
+    for (var i = 0; i < N; i++) {
+      var v = e.values[i] != null ? e.values[i] : 0;
+      inputs += '<div class="field"><label for="e-v' + i + '">' + esc(w.round) + " " + (i + 1) + "</label>" +
+        '<input id="e-v' + i + '" type="number" inputmode="numeric" min="0" max="200" step="1" value="' + v + '"></div>';
+    }
+    var opts = st.people.map(function (p) {
+      return '<option value="' + esc(p.id) + '"' + (p.id === e.personId ? " selected" : "") + ">" + esc(p.name) + "</option>";
+    }).join("");
+    return '<li class="editing"><form class="form" id="edit" data-id="' + esc(e.id) + '" style="margin-top:0">' +
+      '<div class="eyebrow">Editing · ' + esc(fmtDate(e.ts)) + "</div>" +
+      '<div class="row">' + inputs + "</div>" +
+      '<div class="field"><label for="e-person">Logged by</label><select id="e-person">' + opts + "</select></div>" +
+      '<div class="row">' +
+        '<button type="button" class="btn ghost" data-act="canceledit">Cancel</button>' +
+        '<button class="btn" type="submit">Save changes</button>' +
+      "</div></form></li>";
+  }
+
   function vHistory(st) {
     if (!st.entries.length) {
       return '<section class="card"><div class="eyebrow">History</div>' +
         '<p class="lede" style="margin-top:6px">Nothing logged yet. Every finished entry lands here, newest first.</p></section>';
     }
+    var w = M.words(st);
     var items = st.entries.map(function (e) {
+      if (S.editing === e.id) return vEditRow(st, e, w);
       var col = colorOf(st, e.personId), armed = S.armed === e.id;
       return "<li>" +
         '<span class="dot" style="color:' + col + '"></span>' +
-        '<span style="min-width:0"><span class="nm">' + esc(nameOf(st, e.personId)) + "</span><br>" +
-          '<span class="when">' + esc(fmtDate(e.ts)) + "</span></span>" +
-        (isPending(e.id) ? '<span class="pend">unsaved</span>' : "") +
-        '<span class="ss">' + e.values.join(" / ") + "</span>" +
-        '<span class="tt" style="color:' + col + '">' + e.total + "</span>" +
+        '<button type="button" class="rowbtn" data-act="edit" data-id="' + esc(e.id) + '" aria-label="Edit this entry">' +
+          '<span class="rb-main"><span class="nm">' + esc(nameOf(st, e.personId)) + "</span>" +
+            '<span class="when">' + esc(fmtDate(e.ts)) + (e.editedAt ? " · edited" : "") + "</span></span>" +
+          (isPending(e.id) ? '<span class="pend">unsaved</span>' : "") +
+          '<span class="ss">' + e.values.join(" / ") + "</span>" +
+          '<span class="tt" style="color:' + col + '">' + e.total + "</span>" +
+        "</button>" +
         '<button type="button" class="x' + (armed ? " arm" : "") + '" data-act="del" data-id="' + esc(e.id) + '">' + (armed ? "Delete?" : "×") + "</button></li>";
     }).join("");
     return '<section class="card">' +
@@ -492,6 +547,7 @@
       '<section class="card"><div class="eyebrow">This device</div>' +
         '<p class="lede" style="margin-top:6px">The token and passphrase are stored in this browser only. Clearing them leaves the data untouched in the repo.</p>' +
         '<div class="row" style="margin-top:14px">' +
+          '<button type="button" class="btn ghost" data-act="sound">Countdown sound: ' + (soundOn() ? "on" : "off") + "</button>" +
           '<button type="button" class="btn ghost" data-act="forget">' + (S.armed === "forget" ? "Tap again to confirm" : "Forget this device") + "</button>" +
         "</div></section>";
   }
@@ -537,7 +593,7 @@
   /* ------------------------------------------------------------------ *
    * actions
    * ------------------------------------------------------------------ */
-  function setView(v) { S.view = v; S.armed = null; S.formError = null; render(); }
+  function setView(v) { S.view = v; S.armed = null; S.editing = null; S.formError = null; render(); }
 
   function readingValue() {
     var el = document.getElementById("reading");
@@ -576,7 +632,7 @@
   }
 
   function delEntry(id) {
-    if (S.armed !== id) { S.armed = id; render(); return; }
+    if (S.armed !== id) { S.armed = id; S.editing = null; render(); return; }
     S.armed = null;
     var queued = S.queue.filter(function (o) { return o.op === "add" && o.entry.id === id; });
     if (queued.length) dropOps(queued.map(function (o) { return o.oid; }));
@@ -638,7 +694,15 @@
   app.addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-act]");
     if (!b) return;
+    audioUnlock();   // every tap is a chance to open the AudioContext
     switch (b.dataset.act) {
+      case "edit": S.editing = b.dataset.id; S.armed = null; render(); break;
+      case "canceledit": S.editing = null; render(); break;
+      case "sound":
+        LS.set("dl.sound", soundOn() ? "0" : "1");
+        audioUnlock();
+        if (soundOn()) beep(880, 110, 0.2);
+        render(); break;
       case "pick":
         S.me = b.dataset.id; LS.set("dl.me", S.me);
         S.run = { personId: S.me, values: [], nextAt: null, rang: false };
@@ -672,6 +736,19 @@
       if (!n1 || !n2) return;
       pushOp({ op: "people", people: [{ id: "p1", name: n1, slot: 1 }, { id: "p2", name: n2, slot: 2 }] });
       render(); sync();
+    } else if (f.id === "edit") {
+      ev.preventDefault();
+      var vals = [];
+      for (var i = 0; i < N; i++) {
+        var el = document.getElementById("e-v" + i);
+        var v = parseInt(el && el.value, 10);
+        if (isNaN(v) || v < 0) v = 0;
+        vals.push(v > 200 ? 200 : v);
+      }
+      var sel = document.getElementById("e-person");
+      pushOp({ op: "edit", id: f.dataset.id, values: vals, personId: sel ? sel.value : null, at: Date.now() });
+      S.editing = null;
+      render(); sync();
     } else if (f.id === "labels") {
       ev.preventDefault();
       pushOp({ op: "labels", labels: {
@@ -687,17 +764,22 @@
    * timers
    * ------------------------------------------------------------------ */
   setInterval(function () {
-    if (!S.run || !S.run.nextAt) return;
+    if (!S.run || !S.run.nextAt) { lastTick = null; return; }
     var ms = S.run.nextAt - Date.now();
     if (ms <= 0) {
       S.run.nextAt = null;
-      if (!S.run.rang) { S.run.rang = true; buzz(); }
+      lastTick = null;
+      if (!S.run.rang) { S.run.rang = true; buzz(); beep(1320, 420, 0.3); }
       persistRun(); holdScreen(false); render();
       return;
     }
+    var left = Math.ceil(ms / 1000);
+    if (left !== lastTick) {
+      if (left <= 3) beep(880, 110, 0.2);
+      lastTick = left;
+    }
     var txt = document.getElementById("ringtxt"), arc = document.getElementById("ringarc");
     if (txt) {
-      var left = Math.ceil(ms / 1000);
       var big = txt.querySelector(".big");
       if (big && big.textContent !== String(left)) big.textContent = left;
       txt.classList.toggle("go", left <= 3);
